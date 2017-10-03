@@ -128,4 +128,19 @@ git commit -m "加入创建数据库和表的各项配置"
 最后将提交同步到GitHub上面
 git push origin master
 OK，第一阶段完工，下面让我们赶快进入第二阶段的开发工作吧
+
+遍历全国省市县数据
+在第二阶段中，我们准备把遍历全国省市县的功能加入，这一阶段需要编写的代码量比较大
+我们已经知道，全国所有省市县的数据都是从服务端获取到的，因此这里和服务器的交互式是必不可少的，所以我们可以在util包下现增加一个HttpUtil类，代码如下所示：
+public class HttpUtil {
+
+    public static void sendOkHttpRequest(String address,okhttp3.Callback callback){
+        OkHttpClient client=new OkHttpClient();
+        Request request=new Request.Builder().url(address).build();
+        client.newCall(request).enqueue(callback);
+    }
+}
+由于OkHttp的出色封装，这里和服务器进行交互的代码非常简单，仅仅3行就完成了，现在我们发起一条Http请求只需要调用sendOkHttpRequest()方法，传入请求地址，并注册一个回调来处理服务器响应就可以了
+另外，由于服务器返回的省市县数据都是JSON格式的，所以我们最好在提供一个工具来处理这种数据，在util包下新建一个Utility类，代码如下所示
+
  */
