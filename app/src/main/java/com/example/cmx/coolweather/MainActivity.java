@@ -63,6 +63,69 @@ git commit -m "First commit"
 最后将提交的内容同步到远程版本库，也就是GitHub上面
 git push origin master
 注意，在最后一步的时候GitHub要求输入用户名和密码来进行身份校验，这个时候我们输入注册GitHub时填入的用户名和密码就可以了
+这样同步就完成了，现在刷新一下库欧天气版本库的主页，你会看到刚才提交的哪些文件已经存在了
+*/
+/*
+
+创建数据库和表
+
+从本节开始，我们就要真正的动手编码了，为了要让项目能够有更好的结构，这里需要在com.coolweather.android包中在新建几个包
+
+其中db包用于存放数据库模型相关的代码，gson包用于存放GSON模型相关的代码，service包用于存放服务相关的代码，util包用于存放工具相关的代码
+
+第一阶段我们要做的就是创建好数据库和表，这样从服务器获取到的数据才能够存储到本地。关于数据库和标的创建方式，我们之前已经学过
+为了简化数据库的操作，这里我们准备使用LitePal来管理库欧天气的数据库
+首先需要将项目所需的各种依赖库进行声明，编辑app/build.gradle
+
+  compile 'org.litepal.android:core:1.4.1'
+    compile 'com.suqareup.okhttp3:okhttp:3.4.1'
+    compile 'com.google.code.gson:gson:2.7'
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+
+这里声明的4个库我们之前都是使用过的，LitePal用于对数据库进行操作，OkHttp用于进行网络请求，GSON用于解析JSON数据，Glide用于加载和展示图片。库欧天气将会对这几个库进行综合利用，这里直接一次性将他们都添加进来
+然后我们来设计一下数据库表结构，表的设计不绝对。这里我们准备建立3张表：province，city，county，分别用于存放省，市，县的数据信息。对应到实体类中的话，就应该建立Province，City，County这3各类
+那么，在db包下新建一个Province类，代码如下所示：
+
+其中，id是每个实体类都应该有的字段，provinceName记录省的名字，provinceCode记录省的代号。另外，LitePal中的每一个实体类都是必须要继承自DataSupport类的
+接着在db包下新建一个City类
+其中，cityName记录市的名字，cityCode记录市的代号，provinceId记录当前市所属省的id值
+
+然后在db包下新建一个County类
+    private int id;
+
+    private String countyName;
+
+    private String weatherId;
+
+    private int cityId;
+其中，countryName记录县的名字，weatherId记录县所对应的天气id，cityId记录当前县所属市的id
+可以看到，实体类的内容都非常简单，就是声明了一些需要的字段，并生成相应的getter和setter方法就可以了
+接下来需要配置litepal.xml文件
+
+<litepal>
+    <dbname value="cool_weather"/>
+
+    <version value="1"/>
+
+    <list>
+        <mapping class="com.example.cmx.coolweather.db.Province"/>
+        <mapping class="com.example.cmx.coolweather.db.County"/>
+        <mapping class="com.example.cmx.coolweather.db.City"/>
+    </list>
+</litepal>
+
+这里我们将数据库名指定为cool_weather,数据库版本指定为1，并将Province，City和County这3个实体类添加到映射表中
+最后还需要配置一下LitePalApplication，修改AndroidManifest中的代码
 
 
+android:name="org.litepal.LitePalApplication"
+
+这样我们就将所有的配置都完成了，数据库和表会在首次执行任意数据库操作的时候自动创建
+好了，第一阶段的代码写到这里就差不多了，我们现在来提交一下，首先将所有新增的文件添加到版本控制中
+git add .
+接着执行提交操作
+git commit -m "加入创建数据库和表的各项配置"
+最后将提交同步到GitHub上面
+git push origin master
+OK，第一阶段完工，下面让我们赶快进入第二阶段的开发工作吧
  */
