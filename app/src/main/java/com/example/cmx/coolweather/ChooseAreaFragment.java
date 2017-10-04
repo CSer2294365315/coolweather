@@ -3,7 +3,6 @@ package com.example.cmx.coolweather;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.os.Bundle;
-import android.support.v7.widget.LinearLayoutCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -114,6 +113,9 @@ public class ChooseAreaFragment extends Fragment {
                 }
             }
         });
+        /*
+        当你点击了某个省的时候会进入到ListView的onItemClick()方法，这个时候会根据当前的级别来判断是去调用queryCities方法还是queryCounties方法，queryCities方法是去查询市级数据，queryConuties是去查询县级数据，这俩ing个方法内部的流程和queryProvinces方法基本相同，在这里就不重复讲解了
+         */
         backButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view){
@@ -125,6 +127,43 @@ public class ChooseAreaFragment extends Fragment {
 
             }
         });
+        /*
+        如果当前是县级列表，那就返回到市级列表，如果是市级列表，就返回到省级列表。当返回到省级列表的时候，返回按钮会自动隐藏，而且也就不需要再做进一步的处理了。
+        这样我们就把遍历全国省市县的功能完成了，可是碎片是不能直接显示在界面上的，因此我们还需要把它添加到活动里面才行。修改activity_main中的代码
+        <FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <fragment
+        android:id="@+id/choose_area_fragment"
+        android:name="com.example.cmx.coolweather.ChooseAreaFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+</FrameLayout>
+
+布局文件很简单，只是定义了一个FrameLayout，然后将ChooseAreaFragment添加进来，并让他充满整个布局
+另外，我们刚才在碎片的布局里面已经自定义了一个标题栏，因此就不再需要原生的ActionBar了，修改res/values/styles.xml中的代码
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+</resources>
+现在第二阶段的开发工作也完成的差不多了，我们可以运行一下来看看效果。不过在运行之前还有一件事情没有作，那就是声明程序需要的权限。修改AndroidManifest中的代码
+由于我们是通过网络接口来获取全国省市县数据的，因此必须要添加访问网络的权限才可以
+现在可以运行以下程序了，结果如图所示
+可以看到，全国所有省级的数据都显示出来了，我们还可以继续查看市级数据，比如点击江苏省，结果如图所示：
+这个时候标题栏上会出现一个返回按钮，好了，第二阶段的开发工作也都完成了，我们仍然要把代码提交一下
+
+
+         */
         queryProvinces();
     }
     /**
@@ -147,6 +186,10 @@ public class ChooseAreaFragment extends Fragment {
             queryFromServer(address,"province");
         }
     }
+    /*
+    queryProvinces方法中首先会将头布局的标题设置成中国，将返回按钮隐藏起来，因为省级列表已经不能再返回了。然后调用LitePal的查询接口来从数据库中读取省级数据，如果读取到了就直接将数据显示到界面上，如果没有读取到就按照接口组装出一个请求地址，然后调用queryFromServer方法来从服务器上查询数据
+
+     */
     /**
      *查询选中省内的所有市，优先从数据库中查询，如果没有查询到再去服务器上查询
      */
@@ -175,7 +218,7 @@ public class ChooseAreaFragment extends Fragment {
     private void queryCounties(){
         titleText.setText(selectedCity.getCityName());
         backButton.setVisibility(View.VISIBLE);
-        countyList=DataSupport.where("cityid=?",String.valueOf(seletedCity.getId())).find(County.class);
+        countyList=DataSupport.where("cityid=?",String.valueOf(selectedCity.getId())).find(County.class);
         if(countyList.size()>0){
             dataList.clear();
             for(County county:countyList){
@@ -194,6 +237,11 @@ public class ChooseAreaFragment extends Fragment {
 
     /**
      * 根据传入的地址和类型从服务器上查询省市县数据
+     */
+    /*
+    queryFromServer()方法会调用HttpUtil的sendOkHttpRequests方法来向服务器发送请求，响应的数据会回调到onResponse() 方法中，然后我们在这里去调用Utility的handleProvincesResponse方法解析和处理服务器返回的数据，并存储到数据库中。接下来的一部很关键，在解析和处理完数据之后，我们在此调用了queryProvinces方法来重新加载省级数据，由于queryProvinces方法牵扯到了UI操作，因此必须要在主线程上调用，这里借助了runOnUiThread方法来实现从子线程切换到主线程。现在数据库中已经存在了数据，因此调用queryProvinces就会直接将数据显示到界面上了。
+    当你点击了某个省的时候会进入到ListView的OnItemClick方法
+    另外还有一点需要注意，再返回按钮的点击事件里，会对当前ListView的列表进行判断，如果当前是县级列表，饭么就返回
      */
     private void queryFromServer(String address,final String type){
         showProgressDialog();
@@ -262,5 +310,5 @@ public class ChooseAreaFragment extends Fragment {
 
 }
 /*
-这里的代码非常多，但是逻辑却不复杂，我们来慢慢梳理一下，在onCreateView()方法中
+这里的代码非常多，但是逻辑却不复杂，我们来慢慢数以理一下。在onCreateView()方法中
  */
