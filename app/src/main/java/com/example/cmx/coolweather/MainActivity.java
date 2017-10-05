@@ -1,18 +1,47 @@
 package com.example.cmx.coolweather;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.widget.ImageView;
 
 public class MainActivity extends AppCompatActivity {
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
+        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(this);
+        if(prefs.getString("weather",null)!=null){
+            Intent intent=new Intent(this,WeatherActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 }
+/*
+可以看到，这里在onCreate方法的一开始先从SharedPreferences文件中读取缓存数据，如果不为null就说明之前已经请求过天气数据了，那么就没有必要让用户再次选择城市，而是直接跳转到WeatherActivity即可
+好了，现在重新运行一下程序，然后我们还可以向下滑动来查看更多天气信息
+
+获取必应每日一图
+虽然说现在我们已经把天气界面编写的非常不错了，不过和市场上的一些天气软件的界面相比，仍然还是有一定的差距，出色的天气软件不会像我们现在这样使用一个固定的背景色，而是会根据不同的城市或者天气情况展示不同的背景图片
+当然实现这个功能并不复杂，最重要的是需要有服务器的接口支持。不过我实在是没有经历去准备这样一套晚上的服务器接口，那么为了不让我们的天气界面过于单调，这里我们准备使用一个巧妙的方法
+为此我专门准备了一个获取必应每日一图的接口:http://guolin.tech/api/bing_pic.
+访问这个接口，服务器会返回今日的必应背景图链接
+然后我们使用Glide去加载这张图片就可以了
+下面开始实践
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"/>
+这里我们在FrameLayout中添加了一个ImageView，并且将他的宽和高都设置成match_parent。由于FrameLayout默认情况下会将控件放置在左上角，因此ScrollView会完全覆盖住ImageView，从而ImageView也就成为背景图片了
+接着修改WeatherActivity中的代码
+ */
 /*
 我们又怎样才能查看到具体的天气信息呢？这就必须要用到每个地区对应的天气Id了，观察上面返回的数据，你会发现每个县或者区都会有一个weather_id，拿着这个id再去访问和风天气的接口，就能获取到该地区的天气信息了
 下面我们来看一下和风天气该如何使用，首先你需要注册一个自己的账号

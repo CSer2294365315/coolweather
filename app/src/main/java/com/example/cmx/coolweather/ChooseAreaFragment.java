@@ -2,6 +2,7 @@ package com.example.cmx.coolweather;
 
 import android.app.Fragment;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.widget.Toast;
 import com.example.cmx.coolweather.db.City;
 import com.example.cmx.coolweather.db.County;
 import com.example.cmx.coolweather.db.Province;
+import com.example.cmx.coolweather.gson.Weather;
 import com.example.cmx.coolweather.util.HttpUtil;
 import com.example.cmx.coolweather.util.Utility;
 
@@ -103,16 +105,26 @@ public class ChooseAreaFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             @Override
-            public void onItemClick(AdapterView<?> parent,View view ,int position,long id){
-                if(currentLevel==LEVEL_PROVINCE){
-                    selectedProvince=provinceList.get(position);
+            public void onItemClick(AdapterView<?> parent,View view ,int position,long id) {
+                if (currentLevel == LEVEL_PROVINCE) {
+                    selectedProvince = provinceList.get(position);
                     queryCities();
-                }else if(currentLevel==LEVEL_CITY){
-                    selectedCity=cityList.get(position);
+                } else if (currentLevel == LEVEL_CITY) {
+                    selectedCity = cityList.get(position);
                     queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    String weatherId = countyList.get(position).getWeatherId();
+                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                    intent.putExtra("weather_id", weatherId);
+                    startActivity(intent);
+                    getActivity().finish();
                 }
             }
         });
+        /*
+        非常简单，这里在onItemClick方法中加入了一个if判断，如果当前级别是LEVEL_COUNTY，就启动WeatherActivity，并把当前选中县的天气id传递过去
+        另外，我们还需要在MainActivity中加入一个缓存数据的判断才行。修改MainActivity中的代码
+         */
         /*
         当你点击了某个省的时候会进入到ListView的onItemClick()方法，这个时候会根据当前的级别来判断是去调用queryCities方法还是queryCounties方法，queryCities方法是去查询市级数据，queryConuties是去查询县级数据，这俩ing个方法内部的流程和queryProvinces方法基本相同，在这里就不重复讲解了
          */

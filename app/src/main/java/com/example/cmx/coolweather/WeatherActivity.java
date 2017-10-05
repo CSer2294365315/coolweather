@@ -1,17 +1,21 @@
 package com.example.cmx.coolweather;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.media.tv.TvContract;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.cmx.coolweather.gson.Forecast;
 import com.example.cmx.coolweather.gson.Weather;
 import com.example.cmx.coolweather.util.HttpUtil;
@@ -48,15 +52,44 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView carWashText;
 
     private TextView sportText;
+
+    private ImageView bingPicImg;
     /*
     这个活动中的代码也比较长，我们还是一步步梳理下。在onCreate方法中仍然是先去获取一些控件的实例，然后尝试从本地缓存中读取天气数据。那么第一次肯定是没有缓存的，因此就会从Intent中取出天气id，
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if(Build.VERSION.SDK_INT>=21){
+            View decorView=getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
+        /*
+        由于这个功能是Android5.0及以上系统才支持的，因此我们在代码中做了一个系统版本号的判断，只有当版本号大于等于21，也就是5.0及以上系统时才会执行后面的代码
+        接着我们调用了getWindow().getDecorView()方法拿到当前活动的DecorView，在调用它的setSystemUiVisibility()方法来改变系统的UI的显式，这里传入View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN 和 View.SYSTEM_UI_FLAG_LAYOUT_STATE就表示活动的布局会显示在状态栏上面，最后调用一下setStatusBarColor方法将状态栏设置成透明色
+        仅仅这些代码就可以实现让背景图和状态栏融合在一起的效果了。不过，如果运行以下程序，你会发现还是有些问题的，天气界面的头布局几乎和系统状态栏紧贴到一起了，这是由于系统状态栏已经成为我们布局的一部分，因此没有单独为他留出空间。当然，这个问题也非常好解决，借助android:fitsSystemWindows属性就可以了。修改activity_weather中的代码
+        这里在ScrollView的LinearLayout中增加了android:fitsSystemWindows属性，设置成true就表示会为系统状态栏留出空间
+
+
+
+
+         */
         setContentView(R.layout.activity_weather);
 
+
+
+
+
+
+
+
+
+
         //初始化各控件
+        bingPicImg=(ImageView)findViewById(R.id.bing_pic_img);
+
+
         weatherLayout=(ScrollView)findViewById(R.id.weather_layout);
         titleCity=(TextView)findViewById(R.id.title_city);
         titleUpdateTime=(TextView)findViewById(R.id.title_update_time);
@@ -81,17 +114,29 @@ public class WeatherActivity extends AppCompatActivity {
             weatherLayout.setVisibility(View.INVISIBLE);
             requestWeather(weatherId);
         }
+
+`       String bingPic=prefs.getString("bing_pic",null);
+        if(bingPic!=null){
+            Glide.with(this).load(bingPic).into(bingPicImg);
+        }else{
+            loadBingPic();
+        }
+
         /*
         从Intent中取出天气id，并调用requestWeather方法来从服务器请求天气数据。注意，请求数据的时候现将ScrollLayout进行隐藏，否则数据的界面看上去比较奇怪
 
          */
+
+
     }
 
     /*
     根据天气id请求天气信息
      */
     /*
-     requestWeather()方法先是使用了参数中传入的天气id和我们之前申请好的APIKey拼装出一个接口地址，接着调用HttpUtil.sendOkHttpRequest方法来向该地址发出请求，服务器会将相应城市的天气信息以JSON格式返回，然后我们在onResponse回调中先调用Utility.handleWeatherResponse方法将返回的JSON数据转换成Weather对象，再将当前线程切换到主线程，然后进行判断，如果服务器返回的status状态是ok，就说明天气请求成功了，此时将返回的数据缓存到SharedPreferences当中，并调用showWeatherInfo()方法来进行内容显示
+     requestWeather()方法先是使用了参数中传入的天气id和我们之前申请好的APIKey拼装出一个接口地址，接着调用HttpUtil.sendOkHttpRequest方法来向该地址发出请求，服务器会将相应城市的天气信息以JSON格式返回，然后我们在onResponse回调中先调用Utility.handleWeatherResponse方法将返回的JSON数据转换成Weather对象，再将当前线程切换到主线程，然后进行判断，如果服务器返回的status状态是ok，就说明天气请求成功了，此时将返回的数据缓存到SharedPreferences当中，并调用showWeatherInfo()方法来进行内容显示。
+     处理完了WeatherActivity中的逻辑，接下来我们要做的，就是如何从省市县列表跳转到天气界面了，修改ChooseAreaFragment中的代码
+
 
      */
     public void requestWeather(final String weatherId){
@@ -127,12 +172,48 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+        loadBingPic();
     }
     /*
+    加载必应每日一图
+     */
+    private void loadBingPic(){
+        String requestBingPic="http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic,new Callback(){
+            @Override
+            public void onResponse(Call call,Response response) throws IOException{
+                final String bingPic=response.body().string();
+                SharedPreferences.Editor editor=PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                editor.putString("bing_pic",bingPic);
+                editor.apply();
+                runOnUiThread(new Runnable(){
+                    @Override
+                    public void run(){
+                        Glide.with(WeatherActivity.this).load(bingPic).into(bingPicImg);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call call,IOException e){
+                e.printStackTrace();
+            }
+        });
+    }
+    /*
+    可以看到，首先在onCreate方法中获取了新增控件ImageView的实例，然后尝试从SharePreferences读取缓存的背景图片。如果有缓存的话就直接使用Glide来家在这张照片，如果没有缓存的话就去请求今日的必应背景图
+    loadBingPic方法中的逻辑就非常简单了，先是调用HttpUtil.sendOkHttpRequest()方法获取到必应背景图的链接，然后将这个链接缓存到SharedPreferences当中，再将当前线程切换到主线程，最后使用Glide来加载这张图片就可以了，另外需要注意，在requestWeather方法的最后也要挑用一下新背景图片，现在重新云新程序
+
+    不过如果你仔细观察图像，会发现背景图片并没有和状态栏融合在一起，这样的话视觉体验就还是没有达到最佳的效果，虽然说我们已经学习过如果将背景图片和状态栏融合到一起，但当时是借助Design Support库完成的，而我们这个项目中并没有引入Design Support库
+    当然如果还是模仿以前的做法，引入Design Support库，然后嵌套CoordinatorLayout，AppBarLayout，CollapsingToolbarLayout等布局，也能实现背景图和状态栏融合到一起的效果，不过这样就过于麻烦了，这里我准备叫你另外一些更加简单的实现方式。修改WeatherActivity中的代码。
+
+     */
+  /*
     处理并展示Weather实体类中的数据
      */
     /*
-        showWeatherInfo方法中的逻辑就比较简单了，其实就是从Weather对象中获取数据，然后显示到相应的控件上。
+     showWeatherInfo()方法中的逻辑就比较简单了，其实就是从Weather对象中获取数据，然后显示到相应的控件上。注意在未来几天天气预报的部分我们使用了一个for循环来处理每天的天气信息，在循环中动态加载forecast_item布局并设置相应的数据，然后添加到父布局当中。设置完了所有数据后，记得要将ScrollView重新变为可见
+     这样我们就将首次进入WeatherActivity是的逻辑全部处理完了，那么当下一次在进入WeatherActivity时，由于缓存已经存在了，因此会直接解析并显示天气数据，
      */
     private void showWeatherInfo(Weather weather){
         String cityName=weather.basic.cityName;
