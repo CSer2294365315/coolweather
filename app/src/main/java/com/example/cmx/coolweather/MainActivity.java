@@ -173,3 +173,8 @@ public class HttpUtil {
 另外，由于服务器返回的省市县数据都是JSON格式的，所以我们最好在提供一个工具来处理这种数据，在util包下新建一个Utility类，代码如下所示
 
  */
+/*
+可以看到，这里在ScrollView的外面又嵌套了一层SwipeRefreshLayout，这样就自动拥有下拉刷新的功能了
+然后修改WeatherActivity中的代码，加入更新天气的处理逻辑，如下所示：
+
+ */

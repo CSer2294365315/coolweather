@@ -5,10 +5,14 @@ import android.graphics.Color;
 import android.media.tv.TvContract;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -54,12 +58,48 @@ public class WeatherActivity extends AppCompatActivity {
     private TextView sportText;
 
     private ImageView bingPicImg;
+
+    public SwipeRefreshLayout swipeRefresh;
+
+    private String mWeatherId;
+
+    public DrawerLayout drawerLayout;
+
+    private Button navButton;
+
     /*
     这个活动中的代码也比较长，我们还是一步步梳理下。在onCreate方法中仍然是先去获取一些控件的实例，然后尝试从本地缓存中读取天气数据。那么第一次肯定是没有缓存的，因此就会从Intent中取出天气id，
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        drawerLayout=(DrawerLayout)findViewById(R.id.drawer_layout);
+        navButton=(Button)findViewById(R.id.nav_button);
+
+        /*
+        很简单，首先在onCreate方法中获得到新增的DrawerLayout和Button的实例，然后在Button的点击事件中调用DrawerLayout的openDrawer方法来打开滑动菜单就可以了
+        不过现在还没有结束，因为这仅仅是打开了滑动菜单而已，我们还需要处理切换城市后的逻辑才行，这个工作必须要在ChooseAreaFragment中进行，因为之前选中了某个城市后是跳转到WeatherActivity的，而现在由于我们本来就是在WeatherActivity当中的，因此不需要跳转，只需要去请求新原则城市的天气信息就好了
+        那么很显然治理我们需要根据ChooseAreaFragment的不同状态来进行不同的逻辑处理，修改ChooseAreaFragment中的代码，如下所示：
+
+         */
+
+        navButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
+
+        swipeRefresh=(SwipeRefreshLayout)findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        /*
+        首先获得SwipeRefreshLayout的实例，然后调用setColorSchemeResources方法来设置下来刷新进度条的颜色，这里我们就使用colorPrimary作为进度条的颜色了，接着定义一个mWeatherId变量，用于记录城市的天气id，然后调用setOnRefreshListener方法来设置一个希腊刷新的监听器，当触发了下拉刷新操作的时候，就会回调这个监听器的onRefresh方法，我们在这里去掉用requestWeather方法请求天气信息就可以了
+        另外不要忘记，当请求结束后，还需要调用SwipeRefreshLayout的setRefreshing方法并传入false，用于标识刷新时间结束，并隐藏刷新进度条
+        现在重新运行以下程序，并在屏幕的主界面向下拖动
+         */
+        SharedPreferences prefs=PreferenceManager.getDefaultSharedPreferences(R.color.colorPrimary);
+        String weatherString =prefs.getString("weather",null);
+
         if(Build.VERSION.SDK_INT>=21){
             View decorView=getWindow().getDecorView();
             decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
@@ -102,18 +142,24 @@ public class WeatherActivity extends AppCompatActivity {
         carWashText=(TextView)findViewById(R.id.car_wash_text);
         sportText=(TextView)findViewById(R.id.sport_text);
 
-        SharedPreferences prefs= PreferenceManager.getDefaultSharedPreferences(this);
-        String weatherString=prefs.getString("weather",null);
+
         if(weatherString!=null){
             //有缓存时直接解析天气数据
             Weather weather= Utility.handleWeatherResponse(weatherString);
+            mWeatherId=weather.basic.weatherId;
             showWeatherInfo(weather);
         }else {
             //无缓存时去服务器查询天气
-            String weatherId=getIntent().getStringExtra("weather_id");
+            mWeatherId=getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weatherId);
+            requestWeather(mWeatherId);
         }
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener(){
+            @Override
+            public void onRefresh(){
+                requestWeather(mWeatherId);
+            }
+        });
 
 `       String bingPic=prefs.getString("bing_pic",null);
         if(bingPic!=null){
@@ -139,6 +185,9 @@ public class WeatherActivity extends AppCompatActivity {
 
 
      */
+    /*
+    修改的代码不多，首先在onCreate方法中户取到了SwipeRefreshLayout的实例，
+     */
     public void requestWeather(final String weatherId){
         String weatherUrl="http://guolin.tech/api/weather?cityid="+weatherId+"&key=b43bb0ed9a594067a46cf9fb1c916c35";
         HttpUtil.sendOkHttpRequest(weatherUrl,new Callback(){
@@ -157,6 +206,7 @@ public class WeatherActivity extends AppCompatActivity {
                         }else{
                             Toast.makeText(WeatherActivity.this,"获取天气信息失败",Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -544,6 +594,41 @@ public class WeatherActivity extends AppCompatActivity {
 
 将天气显示到界面上
 首先需要在Utility类中添加一个用于解析天气JSON数据的方法，如下所示：
+
+
+ */
+/*
+手动更新天气和切换城市
+经过第三阶段的开发，现在库欧天气的主体功能已经有了，不过你会发现目前存在着一个比较严重的bug，就是当你选中了某一个城市之后，就没法再去查看其他城市的天气了，及时退出程序，下次进来的时候还是会直接跳转到WeatherActivity
+因此，在接下来的阶段我们要加入切换城市的功能，并且为了能够实时的获取到最新的天气，我们还会加入手动更新天气的功能
+
+手动更新天气
+
+先来实现一个手动更新天气的功能。由于我们在上一节中对天气信息进行了缓存，目前每次展示的都是缓存中的数据，因此现在非常需要一种方式能够让用户手动更新天气信息。
+ 至于如何触发更新事件呢？这里我准备采用下拉刷新的方式，正好我们之前也学过下拉刷新的用法，实现起来比较简单
+ 首先修改activity_main中的代码
+
+
+ */
+/*
+切换城市
+
+完成了手动更新天气的功能，接下来我们实现切换城市的功能
+既然是要切换城市，那么肯定是要便利全国各省市县的数据，而这个功能早就已经完成了，并且当时考虑为了方便后面的复用，特意选择了在碎片当中实现，因此，我们其实只需要在天气界面的布局中引入这个碎片，就可以快速的集成切换城市功能了
+虽然说原理很简单，但是显然我们不能让引入的碎片把天气界面给遮挡住，者又该怎么办呢？
+还记得滑动菜单功能吗？将碎片放入到滑动菜单中真实在合适不过了，正常情况下他不占据主界面的任何空间，先要切换城市的时候只需要通过滑动的方式将菜单显示出来就可以了
+下面我们就按照这种思路来实现，首先按照Material Design的建议，我们需要在头布局中加入一个城市的按钮，不然的话用户可能根本就不知道屏幕的左侧偏远是可以拖动的，修改title中的代码
+ <Button
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginLeft="10dp"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/ic_home"/>
+这里添加了一个Button作为城市的按钮，并且让他居左显式，另外，我提前准备好了一张图片来作为按钮的背景图
+接着修改activity_weather布局来加入滑动菜单功能
+可以看到，我们在SwipeRefreshLayout的外面又嵌套了一层DrawerLayout，DrawerLayout中的第一个子控件用于作为主屏幕中显示的内容，第二个子控件用于作为滑动菜单中显示的内容，因此这里我们在第二个子控件的位置添加了用于遍历省市县数据的碎片
+接下来需要在WeatherActivity中加入滑动菜单的逻辑处理，修改WeatherActivity中的代码
 
 
  */
