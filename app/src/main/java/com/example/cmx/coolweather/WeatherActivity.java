@@ -1,5 +1,6 @@
 package com.example.cmx.coolweather;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.media.tv.TvContract;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.example.cmx.coolweather.gson.Forecast;
 import com.example.cmx.coolweather.gson.Weather;
+import com.example.cmx.coolweather.service.AutoUpdateService;
 import com.example.cmx.coolweather.util.HttpUtil;
 import com.example.cmx.coolweather.util.Utility;
 
@@ -111,20 +113,8 @@ public class WeatherActivity extends AppCompatActivity {
         仅仅这些代码就可以实现让背景图和状态栏融合在一起的效果了。不过，如果运行以下程序，你会发现还是有些问题的，天气界面的头布局几乎和系统状态栏紧贴到一起了，这是由于系统状态栏已经成为我们布局的一部分，因此没有单独为他留出空间。当然，这个问题也非常好解决，借助android:fitsSystemWindows属性就可以了。修改activity_weather中的代码
         这里在ScrollView的LinearLayout中增加了android:fitsSystemWindows属性，设置成true就表示会为系统状态栏留出空间
 
-
-
-
          */
         setContentView(R.layout.activity_weather);
-
-
-
-
-
-
-
-
-
 
         //初始化各控件
         bingPicImg=(ImageView)findViewById(R.id.bing_pic_img);
@@ -298,6 +288,12 @@ public class WeatherActivity extends AppCompatActivity {
         carWashText.setText(carWash);
         sportText.setText(sport);
         weatherLayout.setVisibility(View.VISIBLE);
+        Intent intent=new Intent(this, AutoUpdateService.class);
+        startService(intent);
+        /*
+        可以看到，这里在showWeatherInfo方法的最后启动AutoUpdateService这个服务的代码，这样只要一旦选中的某个城市并成功更新天气之后，AutoUpdateService就会一直在后台运行，并保证每8小时更新一次天气
+
+         */
 
     }
 }
@@ -631,4 +627,11 @@ public class WeatherActivity extends AppCompatActivity {
 接下来需要在WeatherActivity中加入滑动菜单的逻辑处理，修改WeatherActivity中的代码
 
 
+ */
+/*
+后台自动更新天气
+
+为了让库欧天气更加智能，在第五阶段我们准备加入后台自动更新天气的功能，这样就可以尽可能的保证用户每次打开软件的时候看到的都是最新的天气信息
+要想实现上述功能，就需要创建一个长期在后台运行的定时任务，这个功能可定时难不倒你的，因为我们之间已经学过了
+首先在service包下新建一个服务，
  */
