@@ -294,6 +294,20 @@ public class WeatherActivity extends AppCompatActivity {
         可以看到，这里在showWeatherInfo方法的最后启动AutoUpdateService这个服务的代码，这样只要一旦选中的某个城市并成功更新天气之后，AutoUpdateService就会一直在后台运行，并保证每8小时更新一次天气
 
          */
+        /*
+        修改图标和名称
+
+        目前库欧天气看起来还不像是一个正式的软件，为什么呢？因为都还没有一个像样的图标呢。一直使用Android Studio自动生成的图标确实不太合适。
+        理论上来将，我们应该给这个图标提供几种不同分辨率的版本，然后分别放入相应分辨率的mipmap目录下，这里简单起见，我都是用一张图了，将这张图命名为logo.png,放入到所有以mipmap开头的目录下，然后修改AndroidManifest中的代码，如下所示：
+         <application
+        android:name="org.litepal.LitePalApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/logo"
+        </application>
+        这里将<application>标签的android:icon属性指定成mipmap/logo就可以修改程序图标了。接下来我们还需要修改以下程序的名称，打开res/values/string文件，其中app_name对应的就是程序的名字，将他修改为库欧天气即可
+
+
+         */
 
     }
 }
